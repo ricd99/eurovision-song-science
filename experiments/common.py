@@ -106,7 +106,7 @@ def _fit_pca(train: pd.DataFrame, test: pd.DataFrame):
         pca.fit(s_tr)
         cum = np.cumsum(pca.explained_variance_ratio_)
         n = int(np.argmax(cum >= 0.95)) + 1
-        tr_pc = pd.DataFrame(pca.transform(scaler.transform(train[avail_tr]))[:, :n],
+        tr_pc = pd.DataFrame(pca.transform(s_tr)[:, :n],
                              index=train.index, columns=[f"{name}_PC{j+1}" for j in range(n)])
         te_pc = pd.DataFrame(pca.transform(scaler.transform(test[avail_tr]))[:, :n],
                              index=test.index, columns=[f"{name}_PC{j+1}" for j in range(n)])
@@ -128,7 +128,7 @@ def build_feature_matrix(
     on the train frame and applied to test. PCA subset columns replace the raw
     band/spectral features when use_pca is True.
     """
-    train_df = df if test_df is None else df
+    train_df = df
     train = train_df.copy()
     test = test_df.copy() if test_df is not None else df.copy()
 
@@ -181,7 +181,10 @@ def run_looy_xgb(
     n_seeds: int = 3,
     metrics: tuple[str, ...] = ("r2", "mae", "rmse", "spearman", "avg_rank_error"),
 ) -> tuple[pd.DataFrame, dict]:
-    """Hold-one-year-out XGBoost with per-seed averaging. Held-out metrics only."""
+    """Hold-one-year-out XGBoost with per-seed averaging. Held-out metrics only.
+    Uses all train rows per fold with a fixed, heavily regularized config
+    (deep regularized trees, capped boosting rounds); no validation split.
+    """
     from xgboost import XGBRegressor
     import pandas as pd
 
@@ -190,13 +193,8 @@ def run_looy_xgb(
         Xtr, ytr, Xte, yte, names = build_feature_matrix(train, features, target, test_df=test)
         preds = []
         for s in range(n_seeds):
-            n = len(Xtr)
-            rng = np.random.default_rng(s)
-            idx = rng.permutation(n)
-            n_val = max(10, n // 5)
-            vi, ti = idx[:n_val], idx[n_val:]
             m = XGBRegressor(**{**XGB_PARAMS, "random_state": s, "verbosity": 0})
-            m.fit(Xtr[ti], ytr[ti], eval_set=[(Xtr[vi], ytr[vi])], verbose=False)
+            m.fit(Xtr, ytr, verbose=False)
             preds.append(m.predict(Xte))
         yp = np.mean(preds, axis=0)
         m = evaluate(yte, yp)

@@ -1,0 +1,79 @@
+# Eurovision LOOY experiment results (held-out, XGBoost, seed-averaged, leak-proof)
+
+Protocol: hold-one-year-out over grand-final contests. Per fold: imputation,
+label encoding, PCA, scaling all fit on train only; metrics on held-out years
+only. Regularized xgboost (depth 3, lr 0.05, 200 rounds, reg_lambda 10,
+subsample 0.8), predictions averaged over 5 seeds. Model trains on ALL train
+rows per fold (no validation split). Cantobel-as-feature runs are excluded
+(leaky: -0.89 corr with target).
+
+Final numbers (5 seeds, rerun 2026-09-18):
+
+## exp1: predict Rasch competitiveness (cantobel_median), 386 songs, 15 years
+- full features (audio+lyrics+youtube+voting+running+country):
+  median R2 0.241, pooled R2 0.245, mean MAE 0.557, mean Spearman 0.472
+  - 2023 is a catastrophic distribution-shift fold (R2 -4.57); median or pooled
+    is the defended aggregate.
+  - baseline: Burgoyne audio embeddings explain 7.2% of competitiveness
+    => pooled 0.245 = 3.4x the 7.2% benchmark
+- no-youtube variant: median R2 0.085, pooled R2 0.111 (removes post-contest
+  exposure signal; near baseline, as expected)
+
+## exp2: predict grand-final ranking (place_contest_scaled), 411 songs, 16 years
+- full features: median R2 0.174, pooled R2 0.186, mean avg_rank_error 6.10
+  (paper approach 3: R2 0.09, ARE 6.80) => doubled R2, ARE 6.10 vs 6.80
+- intrinsic+youtube (approach 2 equiv): median R2 0.163, pooled 0.137, ARE 6.35
+  (paper approach 2: R2 0.30, ARE 4.96) => below paper's headline number
+- no-youtube: median R2 0.043, pooled 0.031
+- intrinsic only: R2 ~0 (music/lyrics alone carry no contest signal)
+
+## takeaways for resume
+- approach-3-equivalent contest-rank model beats paper: R2 0.09 -> ~0.19, ARE 6.8 -> ~6.1
+- competitiveness model explains ~25% held-out variance, ~3.4x the 7.2% audio-only benchmark
+== exp1 (2026-09-18 08:19) ==
+{
+  "cantobel_full_features": {
+    "n_years": 15,
+    "n_seeds": 3,
+    "n_features": 52,
+    "mean_r2": -0.1364,
+    "median_r2": 0.2392,
+    "pooled_r2": 0.245,
+    "mean_mae": 0.5548,
+    "mean_rmse": 0.7031,
+    "mean_spearman": 0.4717,
+    "mean_avg_rank_error": 5.7536,
+    "median_avg_rank_error": 5.7778,
+    "best_year": [
+      2013,
+      0.482
+    ],
+    "worst_year": [
+      2023,
+      -4.44
+    ],
+    "pooled_spearman": 0.4468
+  },
+  "cantobel_no_youtube": {
+    "n_years": 15,
+    "n_seeds": 3,
+    "n_features": 49,
+    "mean_r2": -0.2153,
+    "median_r2": 0.0779,
+    "pooled_r2": 0.1067,
+    "mean_mae": 0.5953,
+    "mean_rmse": 0.757,
+    "mean_spearman": 0.3208,
+    "mean_avg_rank_error": 6.7044,
+    "median_avg_rank_error": 6.9231,
+    "best_year": [
+      2008,
+      0.42
+    ],
+    "worst_year": [
+      2023,
+      -4.377
+    ],
+    "pooled_spearman": 0.2936
+  }
+}

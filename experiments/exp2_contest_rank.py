@@ -44,7 +44,7 @@ def main():
     out = {}
     for label, feats in configs:
         t0 = time.time()
-        res, summary = run_looy_xgb(df, feats, TARGET, n_seeds=3)
+        res, summary = run_looy_xgb(df, feats, TARGET, n_seeds=5)
         summary["n_rows"] = int(len(df))
         summary["features"] = label
         print(f"\n### {label}  [{time.time()-t0:.0f}s]")

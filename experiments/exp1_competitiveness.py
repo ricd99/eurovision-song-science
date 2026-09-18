@@ -26,7 +26,7 @@ def main():
         ("cantobel_no_youtube", NO_YOUTUBE_FEATURES),
     ]:
         t0 = time.time()
-        res, summary = run_looy_xgb(df, feats, "cantobel_median", n_seeds=3)
+        res, summary = run_looy_xgb(df, feats, "cantobel_median", n_seeds=5)
         print(f"\n### {label}  [{time.time()-t0:.0f}s]")
         print(res[["year", "r2", "mae", "rmse", "spearman", "avg_rank_error"]].round(3).to_string(index=False))
         print(json.dumps(summary))
